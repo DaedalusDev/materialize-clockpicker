@@ -45,9 +45,17 @@
         background-color: rgba(255, 64, 129, 0);
     }
 
+    .clockpicker-tick.disabled {
+        color: color("grey", "base");
+    }
+
     .clockpicker-tick.active,
     .clockpicker-tick:hover {
         background-color: rgba(255, 64, 129, 0.25);
+    }
+
+    .clockpicker-tick.disabled:hover {
+        background-color: rgba(64, 64, 129, 0.25);
     }
 
     .clockpicker-canvas-bearing {

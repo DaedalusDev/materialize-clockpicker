@@ -203,6 +203,12 @@
     &:hover {
         background-color: $clockpicker-tick-background-color-active;
     }
+    &.disabled {
+        color: color("grey", "base");
+    }
+    &.disabled:hover {
+        background-color: $clockpicker-tick-background-color-disabled;
+    }
 }
 
 .clockpicker-dial {

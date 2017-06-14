@@ -5,6 +5,7 @@ $clockpicker-primary-color: color("teal", "lighten-4") !default;
 //tick
 $clockpicker-tick-background-color: rgba(color("teal", "base"), 0) !default;
 $clockpicker-tick-background-color-active: rgba(color("teal", "base"), 0.25) !default;
+$clockpicker-tick-background-color-disabled: rgba(color("red", "base"), 0.25) !default;
 $clockpicker-tick-color: #666 !default;
 //canvas
 $clockpicker-canvas-bearing-fill: rgba(color("teal", "darken-4"), 0.75) !default;
