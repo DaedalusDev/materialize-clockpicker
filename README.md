@@ -23,7 +23,37 @@ darktheme: false,      // set to dark theme
 twelvehour: true,      // change to 12 hour AM/PM clock from 24 hour
 vibrate: true,         // vibrate the device when dragging clock hand
 container: '',          // default will append clock next to input
-submit:''               // hora completa en formato 24h
+dismissible: true,		// dismissable
+interval: false,		// set a time interval in minute / if 60, skip minute picker
+min: null,				// set the min time. ex: [13, 30] for 13:30
+max: null,				// set the max time. ex: [18, 30] for 18:30
+disable: null			// disable time value. ex: [[8,30],[12],[14,0],[null,15]] for 8:30, 12:**, 14:30 and **:15
+```
+
+## Events:
+```
+init                    // After plugin init
+beforeShow              // Before Show picker
+afterShow               // After show picker
+beforeHourSelect        // Before hour select
+afterHourSelect         // After hour select
+beforeDone              // Before Done
+afterDone               // After done
+```
+### Usage
+#### At plugin init
+```
+$('#myInput').pickatime({
+    beforeShow: function(e, clockPicker) {
+        // do someting
+    }
+});
+```
+#### After plugin init
+```
+$('#myInput').on('beforeShow.clockpicker', function(e, clockPicker) {
+    // do someting
+});
 ```
 
 ## Screenshots:
