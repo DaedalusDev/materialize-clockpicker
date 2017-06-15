@@ -840,15 +840,23 @@
     // Extends $.fn.clockpicker
     $.fn.pickatime = function (option) {
         var args = Array.prototype.slice.call(arguments, 1);
+
+        var componentData = this.data( 'datetimepicker' )
+
+        if ( option === 'picker' ) {
+            return componentData
+        }
+
+        var options;
         return this.each(function () {
             var $this = $(this),
                 data = $this.data('clockpicker');
             if (!data) {
-                var options = $.extend({}, ClockPicker.DEFAULTS, $this.data(), typeof option === 'object' && option);
+                options = $.extend({}, ClockPicker.DEFAULTS, $this.data(), typeof option === 'object' && option);
                 $this.data('clockpicker', new ClockPicker($this, options));
             } else {
                 if ($.isPlainObject(option)) { // case recall with new parameters
-                    var options = $.extend({}, data.options, option); // merge previous options
+                    options = $.extend({}, data.options, option); // merge previous options
                     data.options = options;
                 }
                 // Manual operatsions. show, hide, remove, e.g.
