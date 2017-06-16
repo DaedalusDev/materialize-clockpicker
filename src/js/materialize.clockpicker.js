@@ -58,6 +58,15 @@
         return prefix ? prefix + id : id;
     }
 
+    function raiseCallback(context, eventName) {
+        var callbackFunction = context.options[eventName];
+        if (callbackFunction && typeof callbackFunction === "function" && !context.attachedCallBack[eventName]) {
+            context.input.on(eventName + '.clockpicker', callbackFunction);
+            context.attachedCallBack[eventName] = true;
+        }
+        context.input.trigger(eventName + '.clockpicker', context);
+    }
+
     // Clock size
     var dialRadius = 135,
         outerRadius = 110,
@@ -70,39 +79,113 @@
     // Popover template
     var tpl = [
         '<div class="clockpicker picker">',
-        '<div class="picker__holder">',
-        '<div class="picker__frame">',
-        '<div class="picker__wrap">',
-        '<div class="picker__box">',
-        '<div class="picker__date-display">',
-        '<div class="clockpicker-display">',
-        '<div class="clockpicker-display-column">',
-        '<span class="clockpicker-span-hours text-primary"></span>',
-        ':',
-        '<span class="clockpicker-span-minutes"></span>',
-        '</div>',
-        '<div class="clockpicker-display-column clockpicker-display-am-pm">',
-        '<div class="clockpicker-span-am-pm"></div>',
-        '</div>',
-        '</div>',
-        '</div>',
-        '<div class="picker__calendar-container">',
-        '<div class="clockpicker-plate">',
-        '<div class="clockpicker-canvas"></div>',
-        '<div class="clockpicker-dial clockpicker-hours"></div>',
-        '<div class="clockpicker-dial clockpicker-minutes clockpicker-dial-out"></div>',
-        '</div>',
-        '<div class="clockpicker-am-pm-block">',
-        '</div>',
-        '</div>',
-        '<div class="picker__footer">',
-        '</div>',
-        '</div>',
-        '</div>',
-        '</div>',
-        '</div>',
+            '<div class="picker__holder">',
+                '<div class="picker__frame">',
+                    '<div class="picker__wrap">',
+                        '<div class="picker__box">',
+                            '<div class="picker__date-display">',
+                                '<div class="clockpicker-display">',
+                                    '<div class="clockpicker-display-column">',
+                                        '<span class="clockpicker-span-hours text-primary"></span>',
+                                        ':',
+                                        '<span class="clockpicker-span-minutes"></span>',
+                                    '</div>',
+                                    '<div class="clockpicker-display-column clockpicker-display-am-pm">',
+                                    '<div class="clockpicker-span-am-pm"></div>',
+                                    '</div>',
+                                '</div>',
+                            '</div>',
+                            '<div class="picker__calendar-container">',
+                                '<div class="clockpicker-plate">',
+                                '<div class="clockpicker-canvas"></div>',
+                                '<div class="clockpicker-dial clockpicker-hours"></div>',
+                                '<div class="clockpicker-dial clockpicker-minutes clockpicker-dial-out"></div>',
+                            '</div>',
+                                '<div class="clockpicker-am-pm-block">',
+                                '</div>',
+                            '</div>',
+                            '<div class="picker__footer">',
+                            '</div>',
+                        '</div>',
+                    '</div>',
+                '</div>',
+            '</div>',
         '</div>'
     ].join('');
+
+    // Time prototype
+    function Time(time) {
+        this.time = this.parse(time);
+    }
+    Time.prototype.parse = function (time) {
+        if (time instanceof Date) {
+            return [time.getHours(), time.getMinutes()];
+        }
+        if (Array.isArray(time)) {
+            return time;
+        }
+        if ($.isNumeric(time)) {
+            var now = new Date();
+            return [( now.getHours() + (+time) ), now.getMinutes()];
+        }
+        if (typeof time === 'string') {
+            if (time === 'now') {
+                var now = new Date();
+                return [now.getHours(), now.getMinutes()];
+            }
+            var a = /(\d{1,2}):(\d{1,2})(\s*)(AM|PM)?/gi.exec(time);
+            if (a) {
+                if (a[4]) {
+                    if (a[4] === 'PM') {
+                        a[1] = +a[1] + 12;
+                    }
+                }
+                return [+a[1], +a[2]];
+            }
+            return [0, 0];
+        }
+        return 'Parse error';
+    };
+    Time.prototype.getHours = function () {
+        return this.time[0];
+    };
+    Time.prototype.setHours = function (h) {
+        this.time[0] = h;
+        return this;
+    };
+    Time.prototype.isPm = function() {
+        return this.time[0] > 12;
+    }
+    Time.prototype.getTwelveHours = function() {
+        var value = this.time[0];
+        if (this.twelvehour) {
+            if (value > 12)
+                value -= 12;
+            if (value === 0)
+                value = 12;
+        }
+        return value;
+    };
+
+    Time.prototype.getMinutes = function() {
+        return this.time[1];
+    };
+    Time.prototype.setMinutes = function (m) {
+        this.time[1] = m;
+        return this;
+    };
+    Time.prototype.toString = function() {
+        var time = this.time;
+        if (this.twelvehour) {
+            if (time[0] < 13) {
+                return leadingZero(time[0]) +':'+ leadingZero(time[1]) +' AM';
+            } else {
+                return leadingZero((time[0] - 12)) +':'+ leadingZero(time[1]) +' PM';
+            }
+        } else {
+            return leadingZero(time[0]) +':'+ leadingZero(time[1]);
+        }
+    };
 
     // ClockPicker
     function ClockPicker(element, options) {
@@ -115,8 +198,7 @@
             isInput = element.prop('tagName') === 'INPUT',
             input = isInput ? element : element.find('input'),
             label = $("label[for=" + input.attr("id") + "]"),
-            timer;
-
+            self = this;
         this.id = uniqueId('cp');
         this.element = element;
         this.holder = holder;
@@ -128,10 +210,10 @@
         this.input = input;
         this.label = label;
         this.popover = popover;
-        this.plate = plate;
         this.hoursView = hoursView;
         this.minutesView = minutesView;
-        this.$aMinutes = [];
+        this.$aHours = $();
+        this.$aMinutes = $();
         this.amPmBlock = amPmBlock;
         this.spanHours = popover.find('.clockpicker-span-hours');
         this.spanMinutes = popover.find('.clockpicker-span-minutes');
@@ -140,77 +222,32 @@
         this.amOrPm = "PM";
         this.attachedCallBack = [];
 
-        this.render();
+        //force input to type ( disable type=time )
+        input.attr('type', 'text');
 
-        raiseCallback(this, 'init');
-    }
+        this.spanHours.click($.proxy(this.toggleView, this, 'hours'));
+        this.spanMinutes.click($.proxy(this.toggleView, this, 'minutes'));
 
-    function raiseCallback(context, eventName) {
-        var callbackFunction = context.options[eventName];
-        if (callbackFunction && typeof callbackFunction === "function" && !context.attachedCallBack[eventName]) {
-            context.input.on(eventName + '.clockpicker', callbackFunction);
-            context.attachedCallBack[eventName] = true;
+        var time = this.time = new Time(input.val());
+        if (this.isValidTime(time.getHours(), time.getMinutes()) !== true) {
+            this.input.val('');
         }
-        context.input.trigger(eventName + '.clockpicker', context);
-    }
 
-    // Default options
-    ClockPicker.DEFAULTS = {
-        'default': '',         // default time, 'now' or '13:14' e.g.
-        fromnow: 0,            // set default time to * milliseconds from now (using with default = 'now')
-        donetext: 'Done',      // done button text
-        autoclose: false,      // auto close when minute is selected
-        ampmclickable: false,  // set am/pm button on itself
-        darktheme: false,			 // set to dark theme
-        twelvehour: true,      // change to 12 hour AM/PM clock from 24 hour
-        vibrate: true,          // vibrate the device when dragging clock hand
-        dismissible: true,		// dismissable
-        interval: false,		// set a time interval in minute / if 60, skip minute picker
-        min: null,				// set the min time. ex: [13, 30] for 13:30
-        max: null,				// set the max time. ex: [18, 30] for 18:30
-        disable: null			// disable time value. ex: [[8,30],[12],[14,0],[null,15]] for 8:30, 12:**, 14:30 and **:15
-    };
+        // Show or toggle
+        input.on('focus.clockpicker click.clockpicker', $.proxy(this.show, this));
 
-    // Show or hide popover
-    ClockPicker.prototype.toggle = function () {
-        this[this.isShown ? 'hide' : 'show']();
-    };
-
-    // Set popover position
-    ClockPicker.prototype.locate = function () {
-        var element = this.element,
-            popover = this.popover,
-            offset = element.offset(),
-            width = element.outerWidth(),
-            height = element.outerHeight(),
-            align = this.options.align,
-            self = this;
-
-        popover.show();
-    };
-
-    ClockPicker.prototype.render = function () {
-        var popover = this.popover,
-            options = this.options,
-            input = this.input,
-            plate = this.plate,
-            hoursView = this.hoursView,
-            minutesView = this.minutesView,
-            self = this;
-
-        this.amPmBlock.empty();
-        this.spanAmPm.empty();
         // Setup for for 12 hour clock if option is selected
         if (options.twelvehour) {
+            this.hoursView.addClass('twelvehour');
             if (!options.ampmclickable) {
                 $('<button type="button" class="btn-floating btn-flat clockpicker-button am-button" tabindex="1">' + "AM" + '</button>').on("click", function () {
-                    self.amOrPm = "AM";
+                    self.setAMorPM("am");
                     self.amPmBlock.children('.pm-button').removeClass('active');
                     self.amPmBlock.children('.am-button').addClass('active');
                     self.spanAmPm.empty().append('AM');
                 }).appendTo(this.amPmBlock);
                 $('<button type="button" class="btn-floating btn-flat clockpicker-button pm-button" tabindex="2">' + "PM" + '</button>').on("click", function () {
-                    self.amOrPm = 'PM';
+                    self.setAMorPM("pm");
                     self.amPmBlock.children('.am-button').removeClass('active');
                     self.amPmBlock.children('.pm-button').addClass('active');
                     self.spanAmPm.empty().append('PM');
@@ -228,12 +265,8 @@
                 }).appendTo(this.spanAmPm);
             }
         }
-        //force input to type ( disable type=time )
-        input.attr('type', 'text');
-        var value = input.val().split(':');
-        if (this.isValidTime(value[0], value[1]) !== true) {
-            this.input.val('');
-        }
+
+        $('<button type="button" class="btn-flat clockpicker-button" tabindex="' + (options.twelvehour ? '3' : '1') + '">' + options.donetext + '</button>').click($.proxy(this.done, this)).appendTo(this.footer);
 
         if (options.darktheme) {
             popover.addClass('darktheme');
@@ -241,59 +274,48 @@
             popover.removeClass('darktheme');
         }
 
-        // If autoclose is not setted, append a button
-        this.footer.empty();
-        $('<button type="button" class="btn-flat clockpicker-button" tabindex="' + (options.twelvehour ? '3' : '1') + '">' + options.donetext + '</button>').click($.proxy(this.done, this)).appendTo(this.footer);
-
-        this.spanHours.click($.proxy(this.toggleView, this, 'hours'));
-        this.spanMinutes.click($.proxy(this.toggleView, this, 'minutes'));
-
-        // Show or toggle
-        input.on('focus.clockpicker click.clockpicker', $.proxy(this.show, this));
-
         // Build ticks
         var tickTpl = $('<div class="clockpicker-tick"></div>'),
-            i, tick, radian, radius;
+            i, t, tick, radian, radius;
 
         // Hours view
-        if (options.twelvehour) {
-            for (i = 1; i < 13; i += 1) {
-                tick = tickTpl.clone();
-                radian = i / 6 * Math.PI;
-                radius = outerRadius;
-                tick.css('font-size', '140%');
-                tick.css({
-                    left: dialRadius + Math.sin(radian) * radius - tickRadius,
-                    top: dialRadius - Math.cos(radian) * radius - tickRadius
-                });
-                tick.html(i === 0 ? '00' : i);
-                hoursView.append(tick);
-                tick.on(mousedownEvent, mousedown);
+        for (i = 0; i < 24; i += 1) {
+            tick = tickTpl.clone();
+            t = i;
+
+            this.$aHours.push(tick);
+
+            if (this.isValidTime(i) != true) {
+                tick.addClass('disabled');
             }
-        } else {
-            for (i = 0; i < 24; i += 1) {
-                tick = tickTpl.clone();
 
-                if (this.isValidTime(i) != true) {
-                    tick.addClass('disabled');
+            radian = i / 6 * Math.PI;
+            var inner = i > 0 && i < 13;
+            if (options.twelvehour) {
+                radius = outerRadius;
+                if (i >= 12) {
+                    t = i - 12;
+                    tick.addClass('pm');
+                } else {
+                    tick.addClass('am');
                 }
-
-                radian = i / 6 * Math.PI;
-                var inner = i > 0 && i < 13;
+                if (t == 0) {
+                    t = 12;
+                }
+            } else {
                 radius = inner ? innerRadius : outerRadius;
-                tick.css({
-                    left: dialRadius + Math.sin(radian) * radius - tickRadius,
-                    top: dialRadius - Math.cos(radian) * radius - tickRadius
-                });
                 if (inner)
                     tick.css('font-size', '120%');
-                tick.html(i === 0 ? '00' : i);
-                hoursView.append(tick);
-                tick.on(mousedownEvent, mousedown);
             }
+            tick.css({
+                left: dialRadius + Math.sin(radian) * radius - tickRadius,
+                top: dialRadius - Math.cos(radian) * radius - tickRadius
+            });
+            tick.html(t === 0 ? '00' : t);
+            hoursView.append(tick);
+            tick.on(mousedownEvent, mousedown);
         }
 
-        this.$aMinutes = [];
         // Minutes view
         for (i = 0; i < 60; i += 5) {
             tick = tickTpl.clone();
@@ -438,10 +460,58 @@
             this.g = g;
             this.canvas = canvas;
         }
+
+        raiseCallback(this, 'init');
     }
 
+    // Default options
+    ClockPicker.DEFAULTS = {
+        'default': '',         // default time, 'now' or '13:14' e.g.
+        fromnow: 0,            // set default time to * milliseconds from now (using with default = 'now')
+        donetext: 'Done',      // done button text
+        autoclose: false,      // auto close when minute is selected
+        ampmclickable: false,  // set am/pm button on itself
+        darktheme: false,			 // set to dark theme
+        twelvehour: true,      // change to 12 hour AM/PM clock from 24 hour
+        vibrate: true,          // vibrate the device when dragging clock hand
+        dismissible: true,		// dismissable
+        interval: false,		// set a time interval in minute / if 60, skip minute picker
+        min: null,				// set the min time. ex: [13, 30] for 13:30
+        max: null,				// set the max time. ex: [18, 30] for 18:30
+        disable: null			// disable time value. ex: [[8,30],[12],[14,0],[null,15]] for 8:30, 12:**, 14:30 and **:15
+    };
+
+
+    // Show or hide popover
+    ClockPicker.prototype.toggle = function () {
+        this[this.isShown ? 'hide' : 'show']();
+    };
+
+    ClockPicker.prototype._optionRefresh = function(optName) {
+
+        return this;
+    };
+
+    ClockPicker.prototype.option = function (optName, value) {
+        this.options[optName] = value;
+        this._optionRefresh(optName);
+    };
+
+    ClockPicker.prototype.options = function (oOptions) {
+        $.extend(this.options, oOptions);
+        for (var optName in oOptions) {
+            this._optionRefresh(optName);
+        }
+    };
+
+    // Set popover position
+    ClockPicker.prototype.locate = function () {
+        var popover = this.popover.show();
+    };
+
+
     ClockPicker.prototype.isValidTime = function (h, m) {
-        // m only
+        // h only
         if (h !== null && m === undefined) {
             if (this.options.min && this.options.min[0] > h) {
                 return 'Mimimum';
@@ -455,7 +525,7 @@
                 return 'Disabled time';
             }
         }
-        // h & only
+        // m only
         if (m !== undefined) {
             if (this.options.interval && m % this.options.interval !== 0) {
                 return 'Out of interval';
@@ -472,11 +542,9 @@
         // h & m
         if (h != null && m !== undefined) {
             if (this.options.min && this.options.min[0] === h && this.options.min[1] > m) {
-                console.log('minimum', h, m);
                 return 'Minimum';
             }
             if (this.options.max && this.options.max[0] === h && this.options.max[1] < m) {
-                console.log('Maximum', h, m);
                 return 'Maximum';
             }
             if (this.options.disable && this.options.disable.some(function (v) {
@@ -490,24 +558,39 @@
 
         return true;
     };
-    // Show popover
-    ClockPicker.prototype.show = function (e) {
-        this.setAMorPM = function (option) {
-            var active = option;
-            var inactive = (option == "pm" ? "am" : "pm");
-            if (this.options.twelvehour) {
-                this.amOrPm = active.toUpperCase();
-                if (!this.options.ampmclickable) {
-                    this.amPmBlock.children('.' + inactive + '-button').removeClass('active');
-                    this.amPmBlock.children('.' + active + '-button').addClass('active');
-                    this.spanAmPm.empty().append(this.amOrPm);
-                }
-                else {
-                    this.spanAmPm.children('#click-' + active + '').addClass("text-primary");
-                    this.spanAmPm.children('#click-' + inactive + '').removeClass("text-primary");
-                }
+
+    ClockPicker.prototype.setAMorPM = function (option) {
+        var active = option;
+        if (option.toUpperCase() !== this.amOrPm) {
+            var hours = 0;
+            if (active == 'pm') {
+                hours = this.time.getHours() + 12;
+            } else {
+                hours = this.time.getHours() - 12;
+            }
+            if (hours) {
+                // @todo: check if hour is available and refresh mintues render if needed
+            }
+            this.time.setHours(hours);
+        }
+        var inactive = (option == "pm" ? "am" : "pm");
+        this.hoursView.addClass(active).removeClass(inactive);
+        if (this.options.twelvehour) {
+            this.amOrPm = active.toUpperCase();
+            if (!this.options.ampmclickable) {
+                this.amPmBlock.children('.' + inactive + '-button').removeClass('active');
+                this.amPmBlock.children('.' + active + '-button').addClass('active');
+                this.spanAmPm.empty().append(this.amOrPm);
+            }
+            else {
+                this.spanAmPm.children('#click-' + active + '').addClass("text-primary");
+                this.spanAmPm.children('#click-' + inactive + '').removeClass("text-primary");
             }
         }
+    };
+
+    // Show popover
+    ClockPicker.prototype.show = function (e) {
         // Not show again
         if (this.isShown) {
             return;
@@ -538,39 +621,24 @@
             this.isAppended = true;
         }
         // Get the time
-        var value = ((this.options['default'] || this.input.prop('value') || 'now') + '').split(':');
-        if (this.options.twelvehour && !(typeof value[1] === 'undefined')) {
-            if (value[1].includes('AM'))
-                this.setAMorPM("am");
-            else
-                this.setAMorPM("pm");
-            value[1] = value[1].replace("AM", "").replace("PM", "");
-        }
-        if (value[0] === 'now') {
-            var now = new Date(+new Date() + this.options.fromnow);
-            if (now.getHours() >= 12)
+        var value = this.time = new Time(this.input.val() || this.options['default'] || 'now');
+
+        if (this.options.twelvehour) {
+            value.twelvehour = true;
+            if (value.isPm())
                 this.setAMorPM("pm");
             else
                 this.setAMorPM("am");
-            value = [
-                now.getHours(),
-                now.getMinutes()
-            ];
         }
-        if (this.isValidTime(null, value[1]) !== true) {
-            value[1] = 0;
+        if (this.isValidTime(null, value.getMinutes()) !== true) {
+            value.setMinutes(0);
         }
-        if (this.isValidTime(value[0], value[1]) !== true) {
+        if (this.isValidTime(value.getHours(), value.getMinutes()) !== true) {
             this.input.val('');
-            value = [];
+            value.parse([0,0]);
         }
-        this.hours = +value[0] || 0;
-        this.minutes = +value[1] || 0;
-        this.spanHours.html(leadingZero(this.hours));
-        this.spanMinutes.html(leadingZero(this.minutes));
-
-
-        this.render();
+        this.spanHours.html(leadingZero(value.getTwelveHours()));
+        this.spanMinutes.html(leadingZero(value.getMinutes()));
 
         // Toggle to hours view
         this.toggleView('hours');
@@ -613,16 +681,13 @@
         var raiseAfterHourSelect = false;
         if (view === 'minutes' && $(this.hoursView).css("visibility") === "visible") {
             raiseCallback(this, 'beforeHourSelect');
-            console.log(this.options.disabled)
-            this.$aMinutes.forEach(function ($minute, index) {
+            this.$aMinutes.each(function (index, $minute) {
                 if ($minute.hasClass('disabled interval')) {
                     return;
                 }
                 if (self.isValidTime(self.hours, (index * 5)) !== true) {
-                    console.log('invalid:', self.hours, (index * 5));
                     $minute.addClass('disabled');
                 } else {
-                    console.log('valid:', self.hours, (index * 5));
                     $minute.removeClass('disabled');
                 }
             });
@@ -656,8 +721,8 @@
     // Reset clock hand
     ClockPicker.prototype.resetClock = function (delay) {
         var view = this.currentView,
-            value = this[view],
             isHours = view === 'hours',
+            value = (isHours ? this.time.getHours() : this.time.getMinutes()),
             unit = Math.PI / (isHours ? 6 : 30),
             radian = value * unit,
             radius = isHours && value > 0 && value < 13 ? innerRadius : outerRadius,
@@ -698,6 +763,7 @@
             options = this.options,
             inner = isHours && z < (outerRadius + innerRadius) / 2,
             radius = inner ? innerRadius : outerRadius,
+            vText = '',
             value;
 
         if (options.twelvehour)
@@ -714,35 +780,51 @@
         radian = value * unit;
 
         // Correct the hours or minutes
-        if (options.twelvehour) {
-            if (isHours) {
-                if (value === 0)
+        // if (options.twelvehour) {
+        //     if (isHours) {
+        //         if (value === 0)
+        //             value = 12;
+        //     } else {
+        //         if (roundBy5)
+        //             value *= 5;
+        //         if (value === 60)
+        //             value = 0;
+        //     }
+        // } else {
+        if (isHours) {
+            if (options.twelvehour) {
+                if (this.amOrPm === "PM") {
+                    value += 12;
+                }
+                if (value === 12 && this.amOrPm === "AM") {
+                    value = 0;
+                }
+                if (value === 24)
                     value = 12;
             } else {
-                if (roundBy5)
-                    value *= 5;
-                if (value === 60)
-                    value = 0;
-            }
-        } else {
-            if (isHours) {
                 if (value === 12)
                     value = 0;
                 value = inner ? (value === 0 ? 12 : value) : value === 0 ? 0 : value + 12;
-                if (this.isValidTime(value) != true) {
-                    return false;
-                }
-            } else {
-                if (roundBy5)
-                    value *= 5;
-                if (value === 60)
-                    value = 0;
-
-                if (this.isValidTime(this.hours, value) != true) {
-                    return false;
-                }
             }
+
+            if (this.isValidTime(value) != true) {
+                return false;
+            }
+            this.time.setHours(value);
+            vText = this.time.getTwelveHours();
+        } else {
+            if (roundBy5)
+                value *= 5;
+            if (value === 60)
+                value = 0;
+
+            if (this.isValidTime(this.time.getHours(), value) != true) {
+                return false;
+            }
+            this.time.setMinutes(value);
+            vText = value;
         }
+        // }
         if (isHours)
             this.fg.setAttribute('class', 'clockpicker-canvas-fg');
         else {
@@ -764,7 +846,7 @@
                 }
 
         this[this.currentView] = value;
-        this[isHours ? 'spanHours' : 'spanMinutes'].html(leadingZero(value));
+        this[isHours ? 'spanHours' : 'spanMinutes'].html(leadingZero(vText));
 
         // If svg is not supported, just add an active class to the tick
         if (!svgSupported) {
@@ -807,12 +889,10 @@
         this.hide();
         this.label.addClass('active');
 
-        var last = this.input.prop('value'),
-            value = leadingZero(this.hours) + ':' + leadingZero(this.minutes);
-        if (this.options.twelvehour)
-            value = value + this.amOrPm;
+        var last = this.input.val(),
+            value = this.time.toString();
 
-        this.input.prop('value', value);
+        this.input.val(value);
         if (value !== last) {
             this.input.triggerHandler('change');
             if (!this.isInput)

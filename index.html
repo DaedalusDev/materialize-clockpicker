@@ -9,7 +9,7 @@
     <link type="text/css" rel="stylesheet" href="dist/css/materialize.clockpicker.css" media="screen,projection" />
     <script src="bower_components/jquery/dist/jquery.min.js"></script>
     <script src="bower_components/materialize/dist/js/materialize.min.js"></script>
-    <script src="dist/js/materialize.clockpicker.js"></script>
+    <script src="src/js/materialize.clockpicker.js"></script>
     <title>Materialize Timepicker</title>
 </head>
 
@@ -111,7 +111,7 @@
         interval: 15,
         min: [8,30],
         max: [15, 45],
-        disable: [[11], [null, 15], [10, 30]],
+//        disable: [[11], [null, 15], [10, 30]],
     });
     $('#timepicker_ampm_dark').pickatime({
       darktheme: true
@@ -124,7 +124,7 @@
         interval: 15,
         min: [8,30],
         max: [15, 45],
-        disable: [[11], [null, 15], [10, 30]],
+//        disable: [[11], [null, 15], [10, 30]],
         autoclose: true,
         beforeDone: function(e, clockPickerInstance) {
           console.log('Ho ! A beforeDone callback !', arguments)
@@ -132,14 +132,14 @@
     }).on('afterDone.clockpicker', function(e, clockPickerInstance) {
         console.log('Ho ! An afterDone callback', arguments)
     });
-    $('#timepicker_24').pickatime({
-        twelvehour: false,
-        interval: 30,
-        min: [8,30],
-        max: [15, 45],
-        disable: [[9,30], [10, 30]],
-        autoclose: true
-    });
+//    $('#timepicker_24').pickatime({
+//        twelvehour: false,
+//        interval: 30,
+//        min: [8,30],
+//        max: [15, 45],
+//        disable: [[9,30], [10, 30]],
+//        autoclose: true
+//    });
     $('#timepicker_24_dark').pickatime({
       darktheme: true,
       twelvehour: false

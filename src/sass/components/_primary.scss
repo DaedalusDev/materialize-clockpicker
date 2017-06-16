@@ -223,6 +223,14 @@
     opacity: 0;
 }
 
+.clockpicker-hours.twelvehour.am .pm {
+    display: none;
+}
+
+.clockpicker-hours.twelvehour.pm .am {
+    display: none;
+}
+
 .clockpicker-hours.clockpicker-dial-out {
     -webkit-transform: scale(1.2, 1.2);
     -moz-transform: scale(1.2, 1.2);
