@@ -118,7 +118,7 @@
                         self.done();
                     }
                 } else {
-                    raiseCallback(self, 'invalidHours');
+                    raiseCallback(self, 'invalidHour');
                 }
             } else {
                 if (options.autoclose && setHand) {
@@ -128,7 +128,7 @@
                     }, duration / 2);
                 } else {
                     if (!setHand) {
-                        raiseCallback(self, 'invalidMinutes');
+                        raiseCallback(self, 'invalidMinute');
                     }
                 }
             }
@@ -327,6 +327,8 @@
         this.amOrPm = "PM";
         this.attachedCallBack = [];
 
+        this._parseTimeRestrictions();
+
         //force input to type ( disable type=time )
         input.attr('type', 'text');
 
@@ -412,9 +414,9 @@
         vibrate: true,          // vibrate the device when dragging clock hand
         dismissible: true,		// dismissable
         interval: false,		// set a time interval in minute / if 60, skip minute picker
-        min: null,				// set the min time. ex: [13, 30] for 13:30
-        max: null,				// set the max time. ex: [18, 30] for 18:30
-        disable: null			// disable time value. ex: [[8,30],[12],[14,0],[null,15]] for 8:30, 12:**, 14:30 and **:15
+        min: false,				// set the min time. ex: [13, 30] for 13:30
+        max: false,				// set the max time. ex: [18, 30] for 18:30
+        disable: false			// disable time value. ex: [[8,30],[12],[14,0],[null,15]] for 8:30, 12:**, 14:30 and **:15
     };
 
     ClockPicker.prototype.render = function(view) {
@@ -557,6 +559,18 @@
         this[this.isShown ? 'hide' : 'show']();
     };
 
+    ClockPicker.prototype._parseTimeRestrictions = function() {
+        if (this.options.min && !Array.isArray(this.options.min)) {
+            this.options.min = Time.parse(this.options.min);
+        }
+        if (this.options.max&& !Array.isArray(this.options.max)) {
+            this.options.max = Time.parse(this.options.max);
+        }
+        if (this.options.disable && Array.isArray(this.options.max)) {
+            this.options.disable = this.options.disable.map(Time.parse);
+        }
+    };
+
     ClockPicker.prototype._optionRefresh = function(optName) {
         var optVal = this.options[optName];
         if (optName === 'donetext') {
@@ -580,6 +594,7 @@
         }
         var aRestrinction = ['min','max','disable','interval'];
         if (aRestrinction.indexOf(optName) !== -1) {
+            this._parseTimeRestrictions();
             this._refreshAvailable('hours');
             if (this.currentView === 'minutes') {
                 this._refreshAvailable('minutes');
@@ -588,11 +603,11 @@
         return this;
     };
 
-    ClockPicker.prototype.option = function (optName, value) {
+    ClockPicker.prototype.set = function (optName, value) {
         var self = this;
         if ($.isPlainObject(optName)) {
             $.each(optName, function(k, v) {
-                self.option(k, v);
+                self.set(k, v);
             });
         } else {
             this.options[optName] = value;
@@ -614,48 +629,53 @@
     };
 
     ClockPicker.prototype.isValidTime = function (h, m) {
+        var self = this;
+        function handleError(error) {
+            self.error = error;
+            return error;
+        }
         // h only
         if (h !== null && m === undefined) {
             if (this.options.min && this.options.min[0] > h) {
-                return 'Mimimum';
+                return handleError('Mimimum');
             }
             if (this.options.max && this.options.max[0] < h) {
-                return 'Maximum';
+                return handleError('Maximum');
             }
             if (this.options.disable && this.options.disable.some(function (v) {
                     return v[0] === h && v[1] === undefined;
                 })) {
-                return 'Disabled time';
+                return handleError('Disabled time');
             }
         }
         // m only
         if (m !== undefined) {
             if (this.options.interval && m % this.options.interval !== 0) {
-                return 'Out of interval';
+                return handleError('Out of interval');
             }
             if (this.options.interval && m % this.options.interval !== 0) {
-                return 'Out of interval';
+                return handleError('Out of interval');
             }
             if (this.options.disable && this.options.disable.some(function (v) {
                     return v[0] === null && v[1] === m;
                 })) {
-                return 'Disabled time';
+                return handleError('Disabled time');
             }
         }
         // h & m
         if (h !== null && m !== undefined) {
             if (this.options.min && (this.options.min[0] > h || this.options.min[0] === h&& this.options.min[1] > m)) {
-                return 'Minimum';
+                return handleError('Minimum');
             }
             if (this.options.max && (this.options.max[0] < h  || this.options.min[0] === h && this.options.max[1] < m)) {
-                return 'Maximum';
+                return handleError('Maximum');
             }
             if (this.options.disable && this.options.disable.some(function (v) {
                     return (v[0] === h && v[1] === m ||
                     v[0] === h && v[1] === undefined ||
                     v[0] === null && v[1] === m);
                 })) {
-                return 'Disabled time';
+                return handleError('Disabled time');
             }
         }
 
@@ -677,7 +697,7 @@
         this.hoursView.addClass(active).removeClass(inactive);
         if (this.options.twelvehour) {
             if (this.currentView === 'minutes') {
-                this._refreshAvailableMinutes(this.currentView);
+                this._refreshAvailable(this.currentView);
             }
             this.amOrPm = active.toUpperCase();
             if (!this.options.ampmclickable) {
@@ -1019,9 +1039,9 @@
     $.fn.pickatime = function (option) {
         var args = Array.prototype.slice.call(arguments, 1);
 
-        var componentData = this.data( 'datetimepicker' );
+        var componentData = this.data( 'clockpicker' );
 
-        if ( option === 'picker' ) {
+        if ( componentData && (option === 'picker' || option === undefined)) {
             return componentData
         }
 
@@ -1034,7 +1054,7 @@
                 $this.data('clockpicker', new ClockPicker($this, options));
             } else {
                 if ($.isPlainObject(option)) { // case recall with new parameters
-                    data.option(option);
+                    data.set(option);
                 }
                 // Manual operatsions. show, hide, remove, e.g.
                 if (typeof data[option] === 'function')
@@ -1042,4 +1062,5 @@
             }
         });
     };
+    $.fn.pickatime.defaults = ClockPicker.DEFAULTS;
 }());

@@ -1,21 +1,25 @@
-var dialRadius = 135;
+$.fn.pickatime.defaults.donetext = 'lama !';
 describe('clockpicker on input', function(){
-    var input, picker, options = {};
-    beforeEach(function() {
+    var input, picker;
+    function initClock(options) {
         input = $('<input />')
             .appendTo('body');
         // Initialize
         input.pickatime(options);
         picker = input.data('clockpicker');
+    }
+
+    afterEach(function() {
+        input.remove();
     });
 
     describe('clockpicker constructor', function() {
         it('clockpicker is initialized on input', function() {
-            options = {};
+            initClock();
             expect(picker).toBeDefined();
         });
         it('clockpicker is not appended to body when initialized', function() {
-            options = {};
+            initClock();
             expect(picker.isAppended).toBe(false, 'clockpicker should not append to body before first shown');
         });
     });
@@ -24,13 +28,13 @@ describe('clockpicker on input', function(){
         // First shown
         // Using triggerHandler('focus') instead of focus(), since invisible element can not be focused in IE.
         it('clockpicker is append and shown', function () {
-            options = {};
+            initClock();
             input.triggerHandler('focus');
             expect(picker.isAppended).toBe(true, 'clockpicker should append to body before first shown');
             expect(picker.isShown).toBe(true, 'clockpicker should be shown on focus');
         });
         it('Show hours view first', function() {
-            options = {};
+            initClock();
             expect(picker.currentView).toBe('hours');
 
         });
@@ -41,18 +45,18 @@ describe('clockpicker on input', function(){
     describe('12h mode', function() {
         describe('clockpicker.$aHours and $aMinutes', function() {
             it('$aHours has 24 tick, 12 hasClass pm', function() {
-                options = {twelvehour: true};
+                initClock();
                 expect(picker.$aHours.length).toEqual(24);
                 expect(picker.$aHours.filter(function(v) {
                     return v.hasClass('pm');
                 }).length).toEqual(12);
             });
             it('$aHours[0].text to be 12 for midnight', function() {
-                options = {twelvehour: true};
+                initClock();
                 expect(picker.$aHours[0].text()).toBe('12');
             });
             it('$aMinutes has 12 tick', function() {
-                options = {twelvehour: true};
+                initClock();
                 expect(picker.$aMinutes.length).toEqual(12);
             });
         });
@@ -61,32 +65,38 @@ describe('clockpicker on input', function(){
     describe('24h mode', function() {
         describe('clockpicker.$aHours and $aMinutes', function () {
             it('$aHours has 24 tick', function () {
-                options = {twelvehour: false};
+                initClock({twelvehour: false});
                 expect(picker.$aHours.length).toEqual(24);
             });
             it('$aMinutes has 12 tick', function () {
-                options = {twelvehour: false};
+                initClock({twelvehour: false});
                 expect(picker.$aMinutes.length).toEqual(12);
             });
         });
     });
 
     describe('User can select hours', function() {
-        var testHours, testHoursOffset;
-        beforeEach(function() {
-            testHours = picker.$aHours[1];
-            testHoursOffset = testHours.offset();
-        });
+        // var testHours, testHoursOffset;
+        //
+        // beforeEach(function() {
+        //     testHours = picker.$aHours[1];
+        //     testHoursOffset = testHours.offset();
+        // });
         it('Mousedown/ mouseup neer hour pick hour and toggle view to minutes', function() {
+            initClock({twelvehour: false});
+
+            input.triggerHandler('focus'); // show the picker
+            var testHours = picker.$aHours[1];
+            var testHoursOffset = testHours.offset();
             testHours.triggerHandler($.Event('mousedown', {
-                pageX: testHoursOffset.left + dialRadius,
+                pageX: testHoursOffset.left + 10,
                 pageY: testHoursOffset.top + 10
             }));
             $(document).triggerHandler($.Event('mouseup', {
-                pageX: testHoursOffset.left + dialRadius,
+                pageX: testHoursOffset.left + 10,
                 pageY: testHoursOffset.top + 10
             }));
-            expect(picker.time.getHours()).toEqual(0);
+            expect(picker.time.getHours()).toEqual(1);
             expect(picker.currentView).toEqual('minutes', 'Should go to minutes view after picking hours');
         });
     });

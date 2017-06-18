@@ -97,7 +97,10 @@ module.exports = function(grunt) {
                         'node_modules/jasmine-jquery/lib/jasmine-jquery.js',
                         'node_modules/materialize-css/dist/js/materialize.min.js'
                     ],
-                    styles: 'src/css/style.css',
+                    styles: [
+                        'node_modules/materialize-css/dist/css/materialize.min.css',
+                        'dist/css/materialize.clockpicker.css'
+                    ],
                     specs: aSpecFiles,
                     keepRunner : true
                     //helpers: 'test/spec/*.js'

@@ -109,9 +109,9 @@
     //am/pm
     $('#timepicker_ampm').pickatime({
             interval: 15,
-            min: [8,30],
-            max: [15, 45],
-    //        disable: [[11], [null, 15], [10, 30]],
+            min: '08:30',
+            max: '16:45',
+            disable: [[11], [null, 15], [10, 30], '09:30', '02:30PM']
         })
         .on('invalidHours.clockpicker', function() {
             Materialize.toast('Select an available hours', 2000);
