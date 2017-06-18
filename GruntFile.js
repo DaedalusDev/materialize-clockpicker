@@ -35,6 +35,9 @@ module.exports = function(grunt) {
         copy: {
             fixture: {
                 src: 'index.html', dest: './tests/fixtures/fixture.html'
+            },
+            dist: {
+                src: 'src/js/materialize.clockpicker.js', dest: 'dist/js/materialize.clockpicker.js'
             }
         },
         replace: {
@@ -62,17 +65,17 @@ module.exports = function(grunt) {
             }
         },
         //  Concat
-        concat: {
-            options: {
-                separator: ';'
-            },
-            dist: {
-                // the files to concatenate
-                src: aSrcFiles,
-                // the location of the resulting JS file
-                dest: 'src/js/bar.js'
-            }
-        },
+        // concat: {
+        //     options: {
+        //         separator: ';'
+        //     },
+        //     dist: {
+        //         // the files to concatenate
+        //         src: aSrcFiles,
+        //         // the location of the resulting JS file
+        //         dest: 'dist/js/materialize.clockpicker.js'
+        //     }
+        // },
         //  Uglify
         uglify: {
             options: {
@@ -158,7 +161,7 @@ module.exports = function(grunt) {
     // define the tasks
     grunt.registerTask('monitor', ["concurrent:monitor"]);
     grunt.registerTask('release', [
-        "concat:dist",
+        "copy:dist",
         "uglify:dist"
     ]);
     grunt.registerTask('dev', [
