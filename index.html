@@ -5,10 +5,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link type="text/css" rel="stylesheet" href="bower_components/materialize/dist/css/materialize.min.css" media="screen,projection" />
+    <link type="text/css" rel="stylesheet" href="node_modules/materialize-css/dist/css/materialize.min.css" media="screen,projection" />
     <link type="text/css" rel="stylesheet" href="dist/css/materialize.clockpicker.css" media="screen,projection" />
-    <script src="bower_components/jquery/dist/jquery.min.js"></script>
-    <script src="bower_components/materialize/dist/js/materialize.min.js"></script>
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/materialize-css/dist/js/materialize.min.js"></script>
     <script src="src/js/materialize.clockpicker.js"></script>
     <title>Materialize Timepicker</title>
 </head>
@@ -108,11 +108,21 @@
     <script type="text/javascript">
     //am/pm
     $('#timepicker_ampm').pickatime({
-        interval: 15,
-        min: [8,30],
-        max: [15, 45],
-//        disable: [[11], [null, 15], [10, 30]],
-    });
+            interval: 15,
+            min: [8,30],
+            max: [15, 45],
+    //        disable: [[11], [null, 15], [10, 30]],
+        })
+        .on('invalidHours.clockpicker', function() {
+            Materialize.toast('Select an available hours', 2000);
+        })
+        .on('invalidMinutes.clockpicker', function() {
+            Materialize.toast('Select an available minute', 2000);
+        })
+        .on('invalidTime.clockpicker', function() {
+            Materialize.toast('Select an available time', 2000);
+        })
+        ;
     $('#timepicker_ampm_dark').pickatime({
       darktheme: true
     });
