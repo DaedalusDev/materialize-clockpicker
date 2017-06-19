@@ -635,20 +635,23 @@
     };
 
     ClockPicker.prototype.isValidTime = function (h, m) {
-        var self = this;
+        var self = this,
+            min = this.options.min,
+            max = this.options.max,
+            disable = this.options.disable;
         function handleError(error) {
             self.error = error;
             return error;
         }
         // h only
         if (h !== null && m === undefined) {
-            if (this.options.min && this.options.min[0] > h) {
+            if (min && min[0] > h) {
                 return handleError('Mimimum');
             }
-            if (this.options.max && this.options.max[0] < h) {
+            if (max && max[0] < h) {
                 return handleError('Maximum');
             }
-            if (this.options.disable && this.options.disable.some(function (v) {
+            if (disable && disable.some(function (v) {
                     return v[0] === h && v[1] === undefined;
                 })) {
                 return handleError('Disabled time');
@@ -662,7 +665,7 @@
             if (this.options.interval && m % this.options.interval !== 0) {
                 return handleError('Out of interval');
             }
-            if (this.options.disable && this.options.disable.some(function (v) {
+            if (disable && disable.some(function (v) {
                     return v[0] === null && v[1] === m;
                 })) {
                 return handleError('Disabled time');
@@ -670,13 +673,13 @@
         }
         // h & m
         if (h !== null && m !== undefined) {
-            if (this.options.min && (this.options.min[0] > h || this.options.min[0] === h&& this.options.min[1] > m)) {
+            if (min && (min[0] > h || min[0] === h&& min[1] > m)) {
                 return handleError('Minimum');
             }
-            if (this.options.max && (this.options.max[0] < h  || this.options.min[0] === h && this.options.max[1] < m)) {
+            if (max && (max[0] < h  || max[0] === h && max[1] < m)) {
                 return handleError('Maximum');
             }
-            if (this.options.disable && this.options.disable.some(function (v) {
+            if (disable && disable.some(function (v) {
                     return (v[0] === h && v[1] === m ||
                     v[0] === h && v[1] === undefined ||
                     v[0] === null && v[1] === m);
