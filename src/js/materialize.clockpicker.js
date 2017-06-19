@@ -619,14 +619,7 @@
             this.options[optName] = value;
             this._optionRefresh(optName);
         }
-    };
-
-    ClockPicker.prototype.options = function (oOptions) {
-        var self = this;
-        $.extend(this.options, oOptions);
-        $.each(oOptions, function(optName) {
-            self._optionRefresh(optName);
-        });
+        return this;
     };
 
     // Set popover position
