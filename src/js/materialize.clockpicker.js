@@ -153,8 +153,14 @@
     function raiseCallback(context, eventName) {
         var callbackFunction = context.options[eventName];
         if (callbackFunction && typeof callbackFunction === "function" && !context.attachedCallBack[eventName]) {
-            context.input.on(eventName + '.clockpicker', callbackFunction);
-            context.attachedCallBack[eventName] = true;
+            callbackFunction.call(context.input,
+                $.Event(eventName, {
+                    currentTarget: context.input[0],
+                    delegateTarget: context.input[0],
+                    namespace: "clockpicker",
+                    target: context.input[0]
+                }),
+                context);
         }
         context.input.trigger(eventName + '.clockpicker', context);
     }

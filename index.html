@@ -137,10 +137,10 @@
 //        disable: [[11], [null, 15], [10, 30]],
         autoclose: true,
         beforeDone: function(e, clockPickerInstance) {
-          console.log('Ho ! A beforeDone callback !', arguments)
+          console.log('Ho ! A beforeDone callback !', this, arguments);
         }
-    }).on('afterDone.clockpicker', function(e, clockPickerInstance) {
-        console.log('Ho ! An afterDone callback', arguments)
+    }).on('beforeDone.clockpicker', function(e, clockPickerInstance) {
+        console.log('Ho ! An other beforeDone callback', this, arguments);
     });
 //    $('#timepicker_24').pickatime({
 //        twelvehour: false,
